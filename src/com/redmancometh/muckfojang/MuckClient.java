@@ -18,15 +18,18 @@ public class MuckClient
         configManager.init();
         Configuration config = configManager.getConfig();
         client = new CloudflareClient(config.getCloudflareConfig().getCfEmail(), config.getCloudflareConfig().getAuthKey());
-        client.initializeZones();
-        tickTimer.scheduleAtFixedRate(new TimerTask()
+        client.initializeZones().thenRun(() ->
         {
-            @Override
-            public void run()
+            System.out.println("THEN RUN");
+            tickTimer.scheduleAtFixedRate(new TimerTask()
             {
-                tick();
-            }
-        }, 0, 5000);
+                @Override
+                public void run()
+                {
+                    tick();
+                }
+            }, 0, 5000);
+        });
     }
 
     public void tick()

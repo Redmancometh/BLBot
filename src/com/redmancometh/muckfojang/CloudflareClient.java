@@ -2,19 +2,15 @@ package com.redmancometh.muckfojang;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
-import org.json.simple.JSONObject;
 
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
@@ -33,6 +29,7 @@ public class CloudflareClient
     private String email;
     private String authKey;
     private Gson reader = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create();
+    private FojangBlockChecker blockChecker = new FojangBlockChecker();
 
     public CloudflareClient(String email, String authKey)
     {
@@ -48,7 +45,18 @@ public class CloudflareClient
 
     public void checkZone(Zone zone)
     {
-        zone.getZoneId();
+        zone.getCurrentDomains().thenRun(() ->
+        {
+            MuckFojang.getClient().getConfigManager().getConfig().getDomainConfig().getSubdomainList().forEach((sd) ->
+            {
+                System.out.println(zone.getTargetFor(sd) + " TARGET FOR");
+                blockChecker.isBlocked(zone.getTargetFor(sd)).thenAccept((blocked) ->
+                {
+                    System.out.println("BLOCKED: " + blocked);
+                });
+            });
+            zone.getSubdomains().forEach((sd) -> System.out.println("target: " + zone.getTargetFor(sd)));
+        });
     }
 
     public HttpGet getListRequest()
@@ -60,29 +68,32 @@ public class CloudflareClient
         return listRequest;
     }
 
-    public void initializeZones()
+    public CompletableFuture<Void> initializeZones()
     {
-        HttpGet updateRequest = getListRequest();
-        try (CloseableHttpResponse response = masterClient.execute(updateRequest))
+        return CompletableFuture.runAsync(() ->
         {
-            try (InputStreamReader inputReader = new InputStreamReader(response.getEntity().getContent()))
+            HttpGet updateRequest = getListRequest();
+            try (CloseableHttpResponse response = masterClient.execute(updateRequest))
             {
-                JsonParser parser = new JsonParser();
-                JsonElement obj = parser.parse(EntityUtils.toString(response.getEntity()));
-                JsonArray json = obj.getAsJsonObject().get("result").getAsJsonArray();
-                json.forEach((element) ->
+                try (InputStreamReader inputReader = new InputStreamReader(response.getEntity().getContent()))
                 {
-                    JsonObject jso = element.getAsJsonObject();
-                    Predicate<Zone> zonePredicate = (zone) -> zone.getName().equalsIgnoreCase(jso.get("name").getAsString());
-                    MuckFojang.getClient().getConfigManager().getConfig().getIndividualZones().getZones().stream().filter(zonePredicate).forEach((zone) -> zone.setZoneId(jso.get("id").getAsString()));
-                });
-                EntityUtils.consume(response.getEntity());
+                    JsonParser parser = new JsonParser();
+                    JsonElement obj = parser.parse(EntityUtils.toString(response.getEntity()));
+                    JsonArray json = obj.getAsJsonObject().get("result").getAsJsonArray();
+                    json.forEach((element) ->
+                    {
+                        JsonObject jso = element.getAsJsonObject();
+                        Predicate<Zone> zonePredicate = (zone) -> zone.getName().equalsIgnoreCase(jso.get("name").getAsString());
+                        MuckFojang.getClient().getConfigManager().getConfig().getIndividualZones().getZones().stream().filter(zonePredicate).forEach((zone) -> zone.setZoneId(jso.get("id").getAsString()));
+                    });
+                    EntityUtils.consume(response.getEntity());
+                }
             }
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        });
     }
 
     /**

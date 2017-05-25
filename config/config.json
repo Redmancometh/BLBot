@@ -11,7 +11,7 @@
             "join",
             "mc",
             "play",
-            "us"
+            "us",
         ] 
     },
     "individual-zones": {     
@@ -19,24 +19,14 @@
         "zones": [
             {
                 //If this is set to true the domain will automaticaly use the subdomain_list
-                "uniform-subdomain": true,
+                "uniform-subdomain": false,
                 "name": "arkhamnetwork.org",
                 "target-domains": [
                     "mojangenforcementblowsdick.club",
                     "mojangenforcementblowsdick.online"
                 ],
-                "subdomains": []
-            },
-            {
-                "uniform-subdomain": true,
-                //Leave the [] here even if it's blank or you'll break things
-                "name": "skyblocky.org",
-                "target-domains": [
-                    "mojangenforcementblowsdick.club",
-                    "mojangenforcementblowsdick.online"
-                ],
-                "subdomains": []
-            }        
+                "subdomains": ["blocktest"]
+            }   
         ]
     }
 }
