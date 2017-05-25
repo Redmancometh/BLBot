@@ -1,8 +1,8 @@
 package com.redmancometh.muckfojang;
 
-import java.lang.reflect.Field;
+import java.util.Timer;
+import java.util.TimerTask;
 
-import com.google.gson.FieldNamingPolicy;
 import com.redmancometh.muckfojang.config.ConfigManager;
 import com.redmancometh.muckfojang.config.Configuration;
 
@@ -10,6 +10,7 @@ public class MuckClient
 {
     private CloudflareClient client;
     private ConfigManager configManager;
+    private Timer tickTimer = new Timer();
 
     public void start()
     {
@@ -18,6 +19,20 @@ public class MuckClient
         Configuration config = configManager.getConfig();
         client = new CloudflareClient(config.getCloudflareConfig().getCfEmail(), config.getCloudflareConfig().getAuthKey());
         client.initializeZones();
+        tickTimer.scheduleAtFixedRate(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                tick();
+            }
+        }, 0, 5000);
+    }
+
+    public void tick()
+    {
+        System.out.println("TICK");
+        client.checkZones();
     }
 
     public CloudflareClient getClient()

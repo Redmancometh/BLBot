@@ -2,14 +2,19 @@ package com.redmancometh.muckfojang;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.function.Predicate;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
+import org.json.simple.JSONObject;
 
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
@@ -36,12 +41,28 @@ public class CloudflareClient
         this.authKey = authKey;
     }
 
+    public void checkZones()
+    {
+        MuckFojang.getClient().getConfigManager().getConfig().getIndividualZones().getZones().forEach((zone) -> checkZone(zone));
+    }
+
+    public void checkZone(Zone zone)
+    {
+        zone.getZoneId();
+    }
+
+    public HttpGet getListRequest()
+    {
+        HttpGet listRequest = new HttpGet("http://api.cloudflare.com/client/v4/zones?per_page=500");
+        listRequest.addHeader("X-Auth-Email", email);
+        listRequest.addHeader("X-Auth-Key", authKey);
+        listRequest.addHeader("Content-Type", "application/json");
+        return listRequest;
+    }
+
     public void initializeZones()
     {
-        HttpGet updateRequest = new HttpGet("http://api.cloudflare.com/client/v4/zones/");
-        updateRequest.addHeader("X-Auth-Email", email);
-        updateRequest.addHeader("X-Auth-Key", authKey);
-        updateRequest.addHeader("Content-Type", "application/json");
+        HttpGet updateRequest = getListRequest();
         try (CloseableHttpResponse response = masterClient.execute(updateRequest))
         {
             try (InputStreamReader inputReader = new InputStreamReader(response.getEntity().getContent()))
@@ -55,6 +76,7 @@ public class CloudflareClient
                     Predicate<Zone> zonePredicate = (zone) -> zone.getName().equalsIgnoreCase(jso.get("name").getAsString());
                     MuckFojang.getClient().getConfigManager().getConfig().getIndividualZones().getZones().stream().filter(zonePredicate).forEach((zone) -> zone.setZoneId(jso.get("id").getAsString()));
                 });
+                EntityUtils.consume(response.getEntity());
             }
         }
         catch (IOException e)

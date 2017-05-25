@@ -30,7 +30,7 @@
             {
                 "uniform-subdomain": true,
                 //Leave the [] here even if it's blank or you'll break things
-                "name": "arkhamnetwork.org",
+                "name": "skyblocky.org",
                 "target-domains": [
                     "mojangenforcementblowsdick.club",
                     "mojangenforcementblowsdick.online"
