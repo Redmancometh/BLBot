@@ -1,7 +1,7 @@
 {
     "cloudflare-config": {
-        "auth-key": "serayne05@gmail.com",
-        "cf-email": "382b8c99a921b352707fb91ce6adc4b3a0d7d"
+        "auth-key": "382b8c99a921b352707fb91ce6adc4b3a0d7d",
+        "cf-email": "serayne05@gmail.com"
     },
     "domain-config": {
         "subdomain-list": [
@@ -24,7 +24,8 @@
                 "target-domains": [
                     "mojangenforcementblowsdick.club",
                     "mojangenforcementblowsdick.online"
-                ]
+                ],
+                "subdomains": []
             },
             {
                 "uniform-subdomain": true,
@@ -33,7 +34,8 @@
                 "target-domains": [
                     "mojangenforcementblowsdick.club",
                     "mojangenforcementblowsdick.online"
-                ]
+                ],
+                "subdomains": []
             }        
         ]
     }

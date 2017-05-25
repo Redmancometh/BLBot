@@ -4,14 +4,14 @@ import java.util.List;
 
 public class ZoneConfiguration
 {
-    private List<ZoneEntry> zones;
+    private List<Zone> zones;
 
-    public List<ZoneEntry> getZones()
+    public List<Zone> getZones()
     {
         return zones;
     }
 
-    public void setZones(List<ZoneEntry> zones)
+    public void setZones(List<Zone> zones)
     {
         this.zones = zones;
     }

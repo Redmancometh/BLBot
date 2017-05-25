@@ -4,6 +4,7 @@ public class Configuration
 {
     private CloudflareConfig cloudflareConfig;
     private DomainConfig domainConfig;
+    private ZoneConfiguration individualZones;
 
     public DomainConfig getDomainConfig()
     {
@@ -23,6 +24,16 @@ public class Configuration
     public void setCloudflareConfig(CloudflareConfig cloudflareConfig)
     {
         this.cloudflareConfig = cloudflareConfig;
+    }
+
+    public ZoneConfiguration getIndividualZones()
+    {
+        return individualZones;
+    }
+
+    public void setIndividualZones(ZoneConfiguration individualZones)
+    {
+        this.individualZones = individualZones;
     }
 
 }

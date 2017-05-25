@@ -4,26 +4,29 @@ import java.util.List;
 
 public class Zone
 {
-    private String zone;
+    private String name;
     private List<String> subdomains;
     private boolean uniformSubdomain;
+    protected String zoneId;
 
-    public Zone(String zone, List<String> subdomains, boolean uniformSubdomain)
+    public String getZoneId()
     {
-        super();
-        this.zone = zone;
-        this.subdomains = subdomains;
-        this.uniformSubdomain = uniformSubdomain;
+        return zoneId;
     }
 
-    public String getZone()
+    public void setZoneId(String zoneId)
     {
-        return zone;
+        this.zoneId = zoneId;
     }
 
-    public void setZone(String zone)
+    public String getName()
     {
-        this.zone = zone;
+        return name;
+    }
+
+    public void setName(String zone)
+    {
+        this.name = zone;
     }
 
     public List<String> getSubdomains()

@@ -13,19 +13,11 @@ public class MuckClient
 
     public void start()
     {
-        for (Field f : Configuration.class.getDeclaredFields())
-        {
-            System.out.println(FieldNamingPolicy.LOWER_CASE_WITH_DASHES.translateName(f));
-        }
         configManager = new ConfigManager();
         configManager.init();
         Configuration config = configManager.getConfig();
         client = new CloudflareClient(config.getCloudflareConfig().getCfEmail(), config.getCloudflareConfig().getAuthKey());
-        client.requestZones().thenAccept((clientList) ->
-        {
-            System.out.println(clientList);
-        });
-
+        client.initializeZones();
     }
 
     public CloudflareClient getClient()

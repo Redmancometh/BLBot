@@ -2,24 +2,23 @@ package com.redmancometh.muckfojang;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-
+import java.util.function.Predicate;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPut;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.util.EntityUtils;
-import org.json.simple.JSONObject;
 
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.redmancometh.muckfojang.config.Zone;
 
 public class CloudflareClient
 {
@@ -37,35 +36,34 @@ public class CloudflareClient
         this.authKey = authKey;
     }
 
-    public CompletableFuture<List<String>> requestZones()
+    public void initializeZones()
     {
-        List<String> zoneList = new ArrayList();
         HttpGet updateRequest = new HttpGet("http://api.cloudflare.com/client/v4/zones/");
         updateRequest.addHeader("X-Auth-Email", email);
         updateRequest.addHeader("X-Auth-Key", authKey);
         updateRequest.addHeader("Content-Type", "application/json");
-        try
+        try (CloseableHttpResponse response = masterClient.execute(updateRequest))
         {
-            try (CloseableHttpResponse response = masterClient.execute(updateRequest))
+            try (InputStreamReader inputReader = new InputStreamReader(response.getEntity().getContent()))
             {
-                try (InputStreamReader inputReader = new InputStreamReader(response.getEntity().getContent()))
+                JsonParser parser = new JsonParser();
+                JsonElement obj = parser.parse(EntityUtils.toString(response.getEntity()));
+                JsonArray json = obj.getAsJsonObject().get("result").getAsJsonArray();
+                json.forEach((element) ->
                 {
-                    EntityUtils.consume(response.getEntity());
-                    JsonParser parser = new JsonParser();
-                    JsonObject obj = parser.parse(inputReader).getAsJsonObject();
-                    System.out.println(obj.toString());
-                    int zoneId = obj.get("result").getAsJsonObject().get("id").getAsInt();
-                    System.out.println("Zone ID: " + zoneId);
-                }
+                    JsonObject jso = element.getAsJsonObject();
+                    Predicate<Zone> zonePredicate = (zone) -> zone.getName().equalsIgnoreCase(jso.get("name").getAsString());
+                    MuckFojang.getClient().getConfigManager().getConfig().getIndividualZones().getZones().stream().filter(zonePredicate).forEach((zone) -> zone.setZoneId(jso.get("id").getAsString()));
+                });
             }
         }
         catch (IOException e)
         {
             e.printStackTrace();
         }
-        return CompletableFuture.supplyAsync(() -> zoneList);
     }
 
+    /**
     public static JSONObject initContent(HttpPut updateRequest, String name, String id, String domain)
     {
         updateRequest.addHeader("X-Auth-Email", "serayne05@gmail.com");
@@ -73,7 +71,7 @@ public class CloudflareClient
         updateRequest.addHeader("Content-Type", "application/json");
         JSONObject json = new JSONObject();
         JSONObject srvContent = new JSONObject();
-
+    
         srvContent.put("service", "_minecraft");
         srvContent.put("proto", "_tcp");
         srvContent.put("name", name);
@@ -89,7 +87,7 @@ public class CloudflareClient
         }
         json.put("data", srvContent);
         return json;
-    }
+    }*/
 
     public List<String> getZones()
     {

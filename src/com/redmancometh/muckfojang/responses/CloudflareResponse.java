@@ -6,7 +6,7 @@ public class CloudflareResponse
 {
     private boolean success;
     private ResponseResult result;
-    
+
     public ResponseResult getResult()
     {
         return result;

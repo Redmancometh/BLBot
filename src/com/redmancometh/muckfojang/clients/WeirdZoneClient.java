@@ -1,6 +1,6 @@
 package com.redmancometh.muckfojang.clients;
 
-public interface ZoneClient
+public class WeirdZoneClient
 {
-    
+
 }
