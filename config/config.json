@@ -1,0 +1,40 @@
+{
+    "cloudflare-config": {
+        "auth-key": "serayne05@gmail.com",
+        "cf-email": "382b8c99a921b352707fb91ce6adc4b3a0d7d"
+    },
+    "domain-config": {
+        "subdomain-list": [
+            "mc",
+            "beta",
+            "eu",
+            "join",
+            "mc",
+            "play",
+            "us"
+        ] 
+    },
+    "individual-zones": {     
+           //These are teh domains you want to have rotate
+        "zones": [
+            {
+                //If this is set to true the domain will automaticaly use the subdomain_list
+                "uniform-subdomain": true,
+                "name": "arkhamnetwork.org",
+                "target-domains": [
+                    "mojangenforcementblowsdick.club",
+                    "mojangenforcementblowsdick.online"
+                ]
+            },
+            {
+                "uniform-subdomain": true,
+                //Leave the [] here even if it's blank or you'll break things
+                "name": "arkhamnetwork.org",
+                "target-domains": [
+                    "mojangenforcementblowsdick.club",
+                    "mojangenforcementblowsdick.online"
+                ]
+            }        
+        ]
+    }
+}
