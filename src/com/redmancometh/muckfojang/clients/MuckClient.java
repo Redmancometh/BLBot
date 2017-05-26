@@ -1,4 +1,4 @@
-package com.redmancometh.muckfojang;
+package com.redmancometh.muckfojang.clients;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -18,9 +18,8 @@ public class MuckClient
         configManager.init();
         Configuration config = configManager.getConfig();
         client = new CloudflareClient(config.getCloudflareConfig().getCfEmail(), config.getCloudflareConfig().getAuthKey());
-        client.initializeZones().thenRun(() ->
+        client.initializeZones().thenRun(() -> client.initializeZones().thenRun(() ->
         {
-            System.out.println("THEN RUN");
             tickTimer.scheduleAtFixedRate(new TimerTask()
             {
                 @Override
@@ -28,8 +27,19 @@ public class MuckClient
                 {
                     tick();
                 }
-            }, 0, 5000);
-        });
+            }, 0, 15000);
+
+        }));
+    }
+
+    public Timer getTickTimer()
+    {
+        return tickTimer;
+    }
+
+    public void setTickTimer(Timer tickTimer)
+    {
+        this.tickTimer = tickTimer;
     }
 
     public void tick()

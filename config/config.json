@@ -12,6 +12,7 @@
             "mc",
             "play",
             "us",
+            "blocktest"
         ] 
     },
     "individual-zones": {     
@@ -19,14 +20,40 @@
         "zones": [
             {
                 //If this is set to true the domain will automaticaly use the subdomain_list
-                "uniform-subdomain": false,
+                "uniform-domain": true,
                 "name": "arkhamnetwork.org",
                 "target-domains": [
-                    "mojangenforcementblowsdick.club",
-                    "mojangenforcementblowsdick.online"
+                    "weknowwhereyoulive.online",
+                    "eulablows.faith"
                 ],
-                "subdomains": ["blocktest"]
-            }   
+                "subdomains": [ 
+                    "blocktest",
+                    "mc"
+                ],
+                "notify-only": false,
+                "min-change-delay": 5,
+                "max-change-delay": 6,
+                "simulation": true,
+                "change-all": false
+            },
+            {
+                // If this is set to true the domain will automaticaly use the subdomain list. If this is set to false only subdomains here will be used. If it's true
+                // then domains both here AND above in the subdomain-list list will be used.
+                "uniform-domain": true,
+                "name": "skyblocky.org",
+                "target-domains": [
+                    ""
+                ],
+                "subdomains": [ 
+                    "blocktest",
+                    "mc"
+                ],
+                "notify-only": false,
+                "min-change-delay": 5,
+                "max-change-delay": 6,
+                "simulation": true,
+                "change-all": false
+            }
         ]
     }
 }

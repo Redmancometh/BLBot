@@ -1,0 +1,6 @@
+PUT: https://api.cloudflare.com/client/v4/zones/301b650ad19cc16705d9fc5884a98e3c/dns_records/7287c2da1a8c40b8ee999505e1f28bff
+
+
+curl -X PUT https://api.cloudflare.com/client/v4/zones/301b650ad19cc16705d9fc5884a98e3c/dns_records/7287c2da1a8c40b8ee999505e1f28bff -H "X-Auth-Email: serayne05@gmail.com" \ -H "X-Auth-Key: 382b8c99a921b352707fb91ce6adc4b3a0d7d" -H "Content-Type: application/json" --data '{"type:":"SRV", "name:", " _minecraft._tcp.blocktest.arkhamnetwork.org","content":"1\\t25565\\weknowwhereyoulive.online"}''
+
+curl -X PUT https://api.cloudflare.com/client/v4/zones/301b650ad19cc16705d9fc5884a98e3c/dns_records/7287c2da1a8c40b8ee999505e1f28bff -H "X-Auth-Email: serayne05@gmail.com" -H "X-Auth-Key: 382b8c99a921b352707fb91ce6adc4b3a0d7d" -H "Content-Type: application/json" --data '{"type":"A","name":"_minecraft._tcp.blocktest.arkhamnetwork.org","content":"1\\t25565\\weknowwhereyoulive.online"}'
