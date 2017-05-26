@@ -125,7 +125,11 @@ public class CloudflareClient
             {
                 if (zone.isGrouped())
                 {
-                    zone.getSubdomains().forEach((subDomain) -> changeSubdomainRecord(subdomain, newTarget, zone));
+                    zone.getSubdomains().forEach((subDomain) ->
+                    {
+                        System.out.println(subDomain);
+                        changeSubdomainRecord(subdomain, newTarget, zone);
+                    });
                     pendingGroupChanges.remove(zone.getGroup());
                     return;
                 }
@@ -143,6 +147,7 @@ public class CloudflareClient
     {
         srvContent.put("service", "_minecraft");
         srvContent.put("proto", "_tcp");
+        System.out.println("DOMAIN STRING: " + domainString);
         srvContent.put("name", domainString);
         srvContent.put("priority", 1);
         srvContent.put("weight", 1);
@@ -218,12 +223,13 @@ public class CloudflareClient
 
     public void checkZone(Zone zone)
     {
+        System.out.println("Checking zone: " + zone.getName());
         addZoneGroup(zone);
         zone.getCurrentDomains().thenRun(() ->
         {
             zone.getSubdomains().stream().filter(sd -> !pendingSubdomainChanges.contains(sd + "." + zone.getName())).forEach((sd) -> blockChecker.isBlocked(zone.getTargetFor(sd)).thenAccept((blocked) ->
             {
-                System.out.println("Checked Subdomain: " + sd + "\n\tZone: " + zone.getName() + "\n\tBlocked: " + blocked);
+                System.out.println("\n\tChecked Subdomain: " + sd + "\n\t\tZone: " + zone.getName() + "\n\t\tBlocked: " + blocked);
                 if (blocked && zone.isNotifyOnly()) for (int x = 0; x < 5; x++)
                     System.out.println("Domain is blocked, but not being changed, because this zone is notify-only!");
                 if (blocked) changeZone(zone, sd);
@@ -236,7 +242,8 @@ public class CloudflareClient
     {
         if (zone.isGrouped()) try
         {
-            groupCache.get(zone.getGroup()).add(zone);
+            List<Zone> zones = groupCache.get(zone.getGroup());
+            if (!zones.contains(zone)) groupCache.get(zone.getGroup()).add(zone);
         }
         catch (ExecutionException e)
         {
