@@ -4,6 +4,7 @@ public class CloudflareConfig
 {
     private String cfEmail;
     private String authKey;
+    private int checkInterval;
 
     public String getCfEmail()
     {
@@ -23,5 +24,15 @@ public class CloudflareConfig
     public void setAuthKey(String authKey)
     {
         this.authKey = authKey;
+    }
+
+    public int getCheckInterval()
+    {
+        return checkInterval;
+    }
+
+    public void setCheckInterval(int checkInterval)
+    {
+        this.checkInterval = checkInterval;
     }
 }

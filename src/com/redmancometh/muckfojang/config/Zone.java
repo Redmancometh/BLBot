@@ -25,13 +25,14 @@ public class Zone
     private int maxChangeDelay;
     private int minChangeDelay;
     private boolean notifyOnly;
-    private boolean simulation;
+    private boolean isGrouped = false;
+    private int group;
     protected String zoneId;
     protected Map<String, String> sdTargetMap = new ConcurrentHashMap();
     protected Map<String, String> sdIdMap = new ConcurrentHashMap();
     protected String currentTarget;
     protected long lastChange;
-
+    protected SubdomainConsumer subConsumer = new SubdomainConsumer();
     CloseableHttpClient zoneClient = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
     public String getZoneId()
@@ -52,33 +53,7 @@ public class Zone
 
     public CompletableFuture<Void> checkList(HttpGet updateRequest, List<String> domainList)
     {
-        return CompletableFuture.runAsync(() ->
-        {
-            domainList.forEach((subDomain) ->
-            {
-                headRequest(updateRequest, subDomain);
-                try (CloseableHttpResponse response = zoneClient.execute(updateRequest))
-                {
-                    JsonParser parser = new JsonParser();
-                    String responseString = EntityUtils.toString(response.getEntity());
-                    JsonElement jse = parser.parse(responseString);
-                    jse.getAsJsonObject().get("result").getAsJsonArray().forEach((element) ->
-                    {
-                        String toCheck = "_minecraft._tcp." + subDomain + "." + getName();
-                        if (element.getAsJsonObject().get("name").getAsString().equalsIgnoreCase(toCheck))
-                        {
-                            System.out.println(element.toString());
-                            sdTargetMap.put(subDomain, element.getAsJsonObject().get("content").getAsString().replace("1\t25565\t", ""));
-                            sdIdMap.put(subDomain, element.getAsJsonObject().get("id").getAsString());
-                        }
-                    });
-                }
-                catch (Exception e)
-                {
-                    e.printStackTrace();
-                }
-            });
-        }, MuckFojang.getPool());
+        return CompletableFuture.runAsync(() -> domainList.forEach((subDomain) -> subConsumer.accept(subDomain, updateRequest)), MuckFojang.getPool());
     }
 
     public void headRequest(HttpGet updateRequest, String subName)
@@ -180,14 +155,59 @@ public class Zone
         this.notifyOnly = notifyOnly;
     }
 
-    public boolean isSimulation()
+    public boolean isGrouped()
     {
-        return simulation;
+        return isGrouped;
     }
 
-    public void setSimulation(boolean simulation)
+    public void setGrouped(boolean isGrouped)
     {
-        this.simulation = simulation;
+        this.isGrouped = isGrouped;
+    }
+
+    public int getGroup()
+    {
+        return group;
+    }
+
+    public void setGroup(int group)
+    {
+        this.group = group;
+    }
+
+    @FunctionalInterface
+    public interface UpdateStringConsumer
+    {
+        public abstract void accept(String subDomain, HttpGet retrieveRequest);
+    }
+
+    class SubdomainConsumer implements UpdateStringConsumer
+    {
+        @Override
+        public void accept(String subDomain, HttpGet retrieveRequest)
+        {
+            headRequest(retrieveRequest, subDomain);
+            try (CloseableHttpResponse response = zoneClient.execute(retrieveRequest))
+            {
+                JsonParser parser = new JsonParser();
+                String responseString = EntityUtils.toString(response.getEntity());
+                JsonElement jse = parser.parse(responseString);
+                jse.getAsJsonObject().get("result").getAsJsonArray().forEach((element) ->
+                {
+                    String toCheck = "_minecraft._tcp." + subDomain + "." + getName();
+                    if (element.getAsJsonObject().get("name").getAsString().equalsIgnoreCase(toCheck))
+                    {
+                        sdTargetMap.put(subDomain, element.getAsJsonObject().get("content").getAsString().replace("1\t25565\t", ""));
+                        sdIdMap.put(subDomain, element.getAsJsonObject().get("id").getAsString());
+                    }
+                });
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+
+        }
     }
 
 }

@@ -27,7 +27,7 @@ public class MuckClient
                 {
                     tick();
                 }
-            }, 0, 15000);
+            }, 0, configManager.getConfig().getCloudflareConfig().getCheckInterval() * 1000);
 
         }));
     }
@@ -44,7 +44,6 @@ public class MuckClient
 
     public void tick()
     {
-        System.out.println("TICK");
         client.checkZones();
     }
 
