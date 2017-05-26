@@ -88,6 +88,7 @@ public class CloudflareClient
                         scheduleChange(subdomain, newTarget, zone);
                         System.out.println("Trying new target for: " + subdomain + "." + zone.getName() + " \n\tTarget:" + newTarget);
                     });
+                    scheduleChange("", newTarget, zone);
                 });
             });
         }
@@ -97,7 +98,7 @@ public class CloudflareClient
         }
     }
 
-    public void changeZone(Zone zone, String subdomain)
+    public void changeSubdomain(Zone zone, String subdomain)
     {
         Collections.shuffle(zone.getTargetDomains());
         String newTarget = zone.getTargetDomains().get(0);
@@ -106,7 +107,7 @@ public class CloudflareClient
             if (blocked)
             {
                 purgeZoneTarget(newTarget);
-                changeZone(zone, subdomain);
+                changeSubdomain(zone, subdomain);
                 return;
             }
             System.out.println("Trying new target for: " + subdomain + "." + zone.getName() + " \n\tTarget:" + newTarget);
@@ -157,6 +158,7 @@ public class CloudflareClient
 
     public void initContent(HttpPut updateRequest, String subdomain, String domainString, String target, Zone zone)
     {
+        System.out.println("CONTENT STR: " + subdomain);
         CloudflareConfig cfConfig = MuckFojang.getClient().getConfigManager().getConfig().getCloudflareConfig();
         updateRequest.addHeader("X-Auth-Email", cfConfig.getCfEmail());
         updateRequest.addHeader("X-Auth-Key", cfConfig.getAuthKey());
@@ -181,7 +183,6 @@ public class CloudflareClient
     {
         return CompletableFuture.runAsync(() ->
         {
-
             String domainString = subdomain + "." + zone.getName();
             try
             {
@@ -232,7 +233,7 @@ public class CloudflareClient
                 System.out.println("\n\tChecked Subdomain: " + sd + "\n\t\tZone: " + zone.getName() + "\n\t\tBlocked: " + blocked);
                 if (blocked && zone.isNotifyOnly()) for (int x = 0; x < 5; x++)
                     System.out.println("Domain is blocked, but not being changed, because this zone is notify-only!");
-                if (blocked) changeZone(zone, sd);
+                if (blocked) changeSubdomain(zone, sd);
             }));
             System.out.println("\n\n");
         });
