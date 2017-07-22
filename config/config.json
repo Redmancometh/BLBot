@@ -23,60 +23,21 @@
                 //If this is set to true the domain will automaticaly use the subdomain_list
                 "uniform-domain": true,
                 "name": "arkhamnetwork.org",
-                "is-grouped": true,
+                "is-grouped": false,
                 "group": 1,
                 "target-domains": [
-                    "weknowwhereyoulive.online",
-                    "eulablows.faith",
-                    "mojangenforcementblowsdick.xyz",
-                    "mojangenforcementblowsdick.top",
-                    "mojangenforcementblowsdick.online",
-                    "mojangenforcementblowsdick.club",
-                    "mojangblows.space",
-                    "mojangblows.racing"
-                ],
-                "subdomains": [],
-                "notify-only": false,
-                "min-change-delay": 5,
-                "max-change-delay": 8
-            },
-            {
-                // If this is set to true the domain will automaticaly use the subdomain list. If this is set to false only subdomains here will be used.
-                "uniform-domain": true,
-                "is-grouped": true,
-                "group": 0,
-                "name": "skyblocky.org",
-                "target-domains": [
-                    "cbr6ysvu2nkm7nlnhw2ajyymfr6famxf4usmjhak.club",
-                    "cbr6ysvu2nkm7nlnhw2ajyymfr6famxf4usmjhak.online",
-                    "cbr6ysvu2nkm7nlnhw2ajyymfr6famxf4usmjhak.xyz",
-                    "fvug7y6yyrkgdc9qec8tj7jyexybzrxcesycpyfctmjdzkj39d.xyz",
-                    "fvug7y6yyrkgdc9qec8tj7jyexybzrxcesycpyfctmjdzkj39d.xyz",
-                    "fvug7y6yyrkgdc9qec8tj7jyexybzrxcesycpyfctmjdzkj39d.online"
+                    "comeatmemojang.club ",
+                    "comeatmemojang.online",
+                    "moredotsmoredots.top",
+                    "mojangtookmyjob.club",
+                    "mojangtookmyjob.xyz",
+                    "moredotsmoredots.club ",
+                    "moredotsmoredots.online"
                 ],
                 "subdomains": [],
                 "notify-only": true,
-                "min-change-delay": 5,
-                "max-change-delay": 8
-            },
-            {
-                // If this is set to true the domain will automaticaly use the subdomain list. If this is set to false only subdomains here will be used.
-                "uniform-domain": true,
-                "name": "skyblocky.com",
-                "is-grouped": true,
-                "group": 0,
-                "target-domains": [
-                    "cbr6ysvu2nkm7nlnhw2ajyymfr6famxf4usmjhak.club",
-                    "cbr6ysvu2nkm7nlnhw2ajyymfr6famxf4usmjhak.online",
-                    "cbr6ysvu2nkm7nlnhw2ajyymfr6famxf4usmjhak.xyz",
-                    "fvug7y6yyrkgdc9qec8tj7jyexybzrxcesycpyfctmjdzkj39d.xyz",
-                    "fvug7y6yyrkgdc9qec8tj7jyexybzrxcesycpyfctmjdzkj39d.xyz",
-                    "fvug7y6yyrkgdc9qec8tj7jyexybzrxcesycpyfctmjdzkj39d.online"
-                ],
-                "subdomains": [],
-                "notify-only": true,
-                "min-change-delay": 15,
-                "max-change-delay": 25
+                "min-change-delay": 1,
+                "max-change-delay": 3
             }
         ]
     }

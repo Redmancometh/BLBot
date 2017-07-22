@@ -67,6 +67,10 @@ public class CloudflareClient
         this.authKey = authKey;
     }
 
+    /**
+     * Changes all domains for the domain group given in the parameter
+     * @param groupId
+     */
     public void changeGroup(int groupId)
     {
         try
@@ -75,21 +79,7 @@ public class CloudflareClient
             {
                 Collections.shuffle(zone.getTargetDomains());
                 String newTarget = zone.getTargetDomains().get(0);
-                blockChecker.isBlocked(newTarget).thenAccept((blocked) ->
-                {
-                    if (blocked)
-                    {
-                        purgeZoneTarget(newTarget);
-                        changeGroup(groupId);
-                        return;
-                    }
-                    zone.getSubdomains().forEach((subdomain) ->
-                    {
-                        scheduleChange(subdomain, newTarget, zone);
-                        System.out.println("Trying new target for: " + subdomain + "." + zone.getName() + " \n\tTarget:" + newTarget);
-                    });
-                    scheduleChange("", newTarget, zone);
-                });
+                blockChecker.isBlocked(newTarget).thenAccept((blocked) -> tryNewTarget(blocked, groupId, zone, newTarget));
             });
         }
         catch (ExecutionException e)
@@ -98,6 +88,38 @@ public class CloudflareClient
         }
     }
 
+    /**
+     * This will take the result from the block checker and 
+     * take appropriate action.
+     * 
+     * If it's blocked it will purget the target chosen which was blocked then it will call back up to 
+     * changeGroup and start the process again.
+     * 
+     * @param blocked
+     * @param groupId
+     * @param zone
+     * @param newTarget
+     */
+    private void tryNewTarget(boolean blocked, int groupId, Zone zone, String newTarget)
+    {
+        if (blocked)
+        {
+            purgeZoneTarget(newTarget);
+            changeGroup(groupId);
+            return;
+        }
+        zone.getSubdomains().forEach((subdomain) -> // iterate through subdomains and schedule change to newTarget, as it's a valid domain
+        {
+            //scheduleChange(subdomain, newTarget, zone);
+            System.out.println("Trying new target for: " + subdomain + "." + zone.getName() + " \n\tTarget:" + newTarget);
+        });
+    }
+
+    /**
+     * Gets a new target and sees if it's blocked. If it's not it schedules a change.
+     * @param zone
+     * @param subdomain
+     */
     public void changeSubdomain(Zone zone, String subdomain)
     {
         Collections.shuffle(zone.getTargetDomains());
@@ -107,11 +129,11 @@ public class CloudflareClient
             if (blocked)
             {
                 purgeZoneTarget(newTarget);
-                changeSubdomain(zone, subdomain);
+                //changeSubdomain(zone, subdomain);
                 return;
             }
             System.out.println("Trying new target for: " + subdomain + "." + zone.getName() + " \n\tTarget:" + newTarget);
-            scheduleChange(subdomain, newTarget, zone);
+            //scheduleChange(subdomain, newTarget, zone);
         });
     }
 
@@ -179,6 +201,13 @@ public class CloudflareClient
         }
     }
 
+    /**
+     * The actual CF request that changes the zone.
+     * @param subdomain
+     * @param target
+     * @param zone
+     * @return
+     */
     public CompletableFuture<Void> changeSubdomainRecord(String subdomain, String target, Zone zone)
     {
         return CompletableFuture.runAsync(() ->
@@ -222,6 +251,11 @@ public class CloudflareClient
         });
     }
 
+    /**
+     * Check a zone.
+     * 
+     * @param zone
+     */
     public void checkZone(Zone zone)
     {
         System.out.println("Checking zone: " + zone.getName());
@@ -231,14 +265,25 @@ public class CloudflareClient
             zone.getSubdomains().stream().filter(sd -> !pendingSubdomainChanges.contains(sd + "." + zone.getName())).forEach((sd) -> blockChecker.isBlocked(zone.getTargetFor(sd)).thenAccept((blocked) ->
             {
                 System.out.println("\n\tChecked Subdomain: " + sd + "\n\t\tZone: " + zone.getName() + "\n\t\tBlocked: " + blocked);
-                if (blocked && zone.isNotifyOnly()) for (int x = 0; x < 5; x++)
-                    System.out.println("Domain is blocked, but not being changed, because this zone is notify-only!");
-                if (blocked) changeSubdomain(zone, sd);
+                if (blocked && zone.isNotifyOnly())
+                    for (int x = 0; x < 5; x++)
+                    {
+                        System.out.println("Domain is blocked, but not being changed, because this zone is notify-only!");
+                        System.out.print("\007");
+                    }
+                else if (blocked) changeSubdomain(zone, sd);
             }));
             System.out.println("\n\n");
         });
     }
 
+    /**
+     * Check to see if the zone is already in the appropriate group cache
+     * if it's not found it will be added.
+     * 
+     * If it's found no action is taken.
+     * @param zone
+     */
     public void addZoneGroup(Zone zone)
     {
         if (zone.isGrouped()) try
