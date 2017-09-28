@@ -1,10 +1,14 @@
 package com.redmancometh.muckfojang.config;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -15,6 +19,7 @@ import org.apache.http.util.EntityUtils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.redmancometh.muckfojang.MuckFojang;
+import com.redmancometh.muckfojang.clients.BlockCheckerClient;
 
 public class Zone
 {
@@ -34,6 +39,9 @@ public class Zone
     protected long lastChange;
     protected SubdomainConsumer subConsumer = new SubdomainConsumer();
     CloseableHttpClient zoneClient = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+    protected BlockCheckerClient blockChecker = new BlockCheckerClient();
+    protected AtomicBoolean pendingChanges = new AtomicBoolean(false);
+    protected Random rand = new Random();
 
     public String getZoneId()
     {
@@ -53,7 +61,8 @@ public class Zone
 
     public CompletableFuture<Void> checkList(HttpGet updateRequest, List<String> domainList)
     {
-        return CompletableFuture.runAsync(() -> domainList.forEach((subDomain) -> subConsumer.accept(subDomain, updateRequest)), MuckFojang.getPool());
+        return CompletableFuture.runAsync(() -> domainList.forEach((
+        subDomain) -> subConsumer.accept(subDomain, updateRequest)), MuckFojang.getPool());
     }
 
     public void headRequest(HttpGet updateRequest, String subName)
@@ -179,6 +188,84 @@ public class Zone
     public interface UpdateStringConsumer
     {
         public abstract void accept(String subDomain, HttpGet retrieveRequest);
+    }
+
+    /**
+     * Master check method. Does NOT change by itself.
+     */
+    public void check()
+    {
+        getCurrentDomains().thenRun(() ->
+        {
+            getSubdomains().forEach((sd) -> blockChecker.isBlocked(getTargetFor(sd)).thenAccept((blocked) ->
+            {
+                System.out.println("\n\tChecked Subdomain: " + sd + "\n\t\tZone: " + getName() + "\n\t\tBlocked: " + blocked);
+                if (blocked)
+                {
+                    if (notifyOnly)
+                    {
+                        for (int x = 0; x < 15; x++)
+                            System.out.println("\n\n\007Domain is blocked, but not being changed, because this zone is notify-only!");
+                        return;
+                    }
+                    changeSubdomains();
+                }
+            }));
+            System.out.println("\n\n");
+        });
+    }
+
+    /**
+     * Gets a new target and sees if it's blocked. If it's not it schedules a change.
+     * @param zone
+     * @param subdomain
+     */
+    public void changeSubdomains()
+    {
+        Collections.shuffle(getTargetDomains());
+        String newTarget = getTargetDomains().get(0);
+        getSubdomains().forEach((subdomain) ->
+        {
+            blockChecker.isBlocked(newTarget).thenAccept((blocked) ->
+            {
+                if (blocked)
+                {
+                    purgeZoneTarget(newTarget);
+                    changeSubdomains();
+                    return;
+                }
+                System.out.println("Trying new target for: " + subdomain + "." + getName() + " \n\tTarget:" + newTarget);
+                scheduleChange(subdomain, newTarget);
+            });
+        });
+    }
+
+    public void purgeZoneTarget(String target)
+    {
+
+        System.out.println("PURGE ZONE " + target);
+    }
+
+    public void scheduleChange(String subdomain, String newTarget)
+    {
+        long timeToChange = rand.nextInt((getMaxChangeDelay() - getMinChangeDelay()) + getMinChangeDelay()) * 1000;
+        System.out.println("Seconds until change: " + timeToChange);
+        MuckFojang.getClient().getTickTimer().schedule(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                if (isGrouped())
+                {
+                    getSubdomains().forEach((subDomain) -> MuckFojang.getClient().getClient().changeSubdomainRecord(subdomain, newTarget, Zone.this));
+                    pendingChanges.set(false);
+                    return;
+                }
+                MuckFojang.getClient().getClient().changeSubdomainRecord(subdomain, newTarget, Zone.this);
+                pendingChanges.set(false);
+            }
+        }, timeToChange);
+        pendingChanges.set(true);
     }
 
     class SubdomainConsumer implements UpdateStringConsumer

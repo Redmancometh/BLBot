@@ -4,13 +4,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Random;
-import java.util.TimerTask;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import org.apache.http.ParseException;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -41,15 +39,14 @@ import com.redmancometh.muckfojang.config.Zone;
 public class CloudflareClient
 {
     //https://api.cloudflare.com/client/v4/zones/
-
     CloseableHttpClient masterClient = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
     private String email;
     private String authKey;
     private Gson reader = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create();
-    private BlockCheckerClient blockChecker = new BlockCheckerClient();
-    private List<String> pendingSubdomainChanges = new CopyOnWriteArrayList();
+    private List<String> pendingDomainChanges = new CopyOnWriteArrayList();
+    private Map<Integer, String> groupTargets = new ConcurrentHashMap();
+
     private List<Integer> pendingGroupChanges = new CopyOnWriteArrayList();
-    private Random rand = new Random();
     LoadingCache<Integer, List<Zone>> groupCache = CacheBuilder.newBuilder().build(new CacheLoader<Integer, List<Zone>>()
     {
         @Override
@@ -60,110 +57,21 @@ public class CloudflareClient
 
     });
 
+    public String getGroupTarget(int arg0)
+    {
+        return groupTargets.get(arg0);
+    }
+
+    public String put(int arg0, String arg1)
+    {
+        return groupTargets.put(arg0, arg1);
+    }
+
     public CloudflareClient(String email, String authKey)
     {
         super();
         this.email = email;
         this.authKey = authKey;
-    }
-
-    /**
-     * Changes all domains for the domain group given in the parameter
-     * @param groupId
-     */
-    public void changeGroup(int groupId)
-    {
-        try
-        {
-            groupCache.get(groupId).forEach((zone) ->
-            {
-                Collections.shuffle(zone.getTargetDomains());
-                String newTarget = zone.getTargetDomains().get(0);
-                blockChecker.isBlocked(newTarget).thenAccept((blocked) -> tryNewTarget(blocked, groupId, zone, newTarget));
-            });
-        }
-        catch (ExecutionException e)
-        {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * This will take the result from the block checker and 
-     * take appropriate action.
-     * 
-     * If it's blocked it will purget the target chosen which was blocked then it will call back up to 
-     * changeGroup and start the process again.
-     * 
-     * @param blocked
-     * @param groupId
-     * @param zone
-     * @param newTarget
-     */
-    private void tryNewTarget(boolean blocked, int groupId, Zone zone, String newTarget)
-    {
-        if (blocked)
-        {
-            purgeZoneTarget(newTarget);
-            changeGroup(groupId);
-            return;
-        }
-        zone.getSubdomains().forEach((subdomain) -> // iterate through subdomains and schedule change to newTarget, as it's a valid domain
-        {
-            //scheduleChange(subdomain, newTarget, zone);
-            System.out.println("Trying new target for: " + subdomain + "." + zone.getName() + " \n\tTarget:" + newTarget);
-        });
-    }
-
-    /**
-     * Gets a new target and sees if it's blocked. If it's not it schedules a change.
-     * @param zone
-     * @param subdomain
-     */
-    public void changeSubdomain(Zone zone, String subdomain)
-    {
-        Collections.shuffle(zone.getTargetDomains());
-        String newTarget = zone.getTargetDomains().get(0);
-        blockChecker.isBlocked(newTarget).thenAccept((blocked) ->
-        {
-            if (blocked)
-            {
-                purgeZoneTarget(newTarget);
-                //changeSubdomain(zone, subdomain);
-                return;
-            }
-            System.out.println("Trying new target for: " + subdomain + "." + zone.getName() + " \n\tTarget:" + newTarget);
-            //scheduleChange(subdomain, newTarget, zone);
-        });
-    }
-
-    public void scheduleChange(String subdomain, String newTarget, Zone zone)
-    {
-        long timeToChange = rand.nextInt((zone.getMaxChangeDelay() - zone.getMinChangeDelay()) + zone.getMinChangeDelay()) * 1000;
-        System.out.println("Seconds until change: " + timeToChange);
-        MuckFojang.getClient().getTickTimer().schedule(new TimerTask()
-        {
-            @Override
-            public void run()
-            {
-                if (zone.isGrouped())
-                {
-                    zone.getSubdomains().forEach((subDomain) ->
-                    {
-                        System.out.println(subDomain);
-                        changeSubdomainRecord(subdomain, newTarget, zone);
-                    });
-                    pendingGroupChanges.remove(zone.getGroup());
-                    return;
-                }
-                changeSubdomainRecord(subdomain, newTarget, zone);
-                pendingSubdomainChanges.remove(subdomain + "." + zone.getName());
-            }
-        }, timeToChange);
-        if (zone.isGrouped())
-            pendingGroupChanges.add(zone.getGroup());
-        else
-            pendingSubdomainChanges.add(subdomain + "." + zone.getName());
     }
 
     public void insertSrv(JSONObject srvContent, String domainString, String target)
@@ -232,12 +140,6 @@ public class CloudflareClient
 
     }
 
-    public void purgeZoneTarget(String target)
-    {
-
-        System.out.println("PURGE ZONE " + target);
-    }
-
     public void logPurge()
     {
 
@@ -247,7 +149,7 @@ public class CloudflareClient
     {
         MuckFojang.getClient().getConfigManager().getConfig().getIndividualZones().getZones().forEach((zone) ->
         {
-            if (!pendingSubdomainChanges.contains(zone.getName())) checkZone(zone);
+            if (!pendingDomainChanges.contains(zone.getName())) checkZone(zone);
         });
     }
 
@@ -259,42 +161,7 @@ public class CloudflareClient
     public void checkZone(Zone zone)
     {
         System.out.println("Checking zone: " + zone.getName());
-        addZoneGroup(zone);
-        zone.getCurrentDomains().thenRun(() ->
-        {
-            zone.getSubdomains().stream().filter(sd -> !pendingSubdomainChanges.contains(sd + "." + zone.getName())).forEach((sd) -> blockChecker.isBlocked(zone.getTargetFor(sd)).thenAccept((blocked) ->
-            {
-                System.out.println("\n\tChecked Subdomain: " + sd + "\n\t\tZone: " + zone.getName() + "\n\t\tBlocked: " + blocked);
-                if (blocked && zone.isNotifyOnly())
-                    for (int x = 0; x < 5; x++)
-                    {
-                        System.out.println("Domain is blocked, but not being changed, because this zone is notify-only!");
-                        System.out.print("\007");
-                    }
-                else if (blocked) changeSubdomain(zone, sd);
-            }));
-            System.out.println("\n\n");
-        });
-    }
-
-    /**
-     * Check to see if the zone is already in the appropriate group cache
-     * if it's not found it will be added.
-     * 
-     * If it's found no action is taken.
-     * @param zone
-     */
-    public void addZoneGroup(Zone zone)
-    {
-        if (zone.isGrouped()) try
-        {
-            List<Zone> zones = groupCache.get(zone.getGroup());
-            if (!zones.contains(zone)) groupCache.get(zone.getGroup()).add(zone);
-        }
-        catch (ExecutionException e)
-        {
-            e.printStackTrace();
-        }
+        zone.check();
     }
 
     public HttpGet getListRequest()

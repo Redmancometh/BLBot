@@ -1,7 +1,7 @@
 {
     "cloudflare-config": {
-        "auth-key": "382b8c99a921b352707fb91ce6adc4b3a0d7d",
-        "cf-email": "serayne05@gmail.com",
+        "auth-key": "",
+        "cf-email": "",
         "check-interval": 15 // Checking interval in seconds. Advise ~15s to conserver bandwidth.
     },
     "domain-config": {
@@ -22,20 +22,14 @@
             {
                 //If this is set to true the domain will automaticaly use the subdomain_list
                 "uniform-domain": true,
-                "name": "arkhamnetwork.org",
+                "name": "exampledomain.org",
                 "is-grouped": false,
                 "group": 1,
                 "target-domains": [
-                    "comeatmemojang.club",
-                    "comeatmemojang.online",
-                    "moredotsmoredots.top",
-                    "mojangtookmyjob.club",
-                    "mojangtookmyjob.xyz",
-                    "moredotsmoredots.club ",
-                    "moredotsmoredots.online"
+                    "targetdomain.example",
                 ],
                 "subdomains": [],
-                "notify-only": false,
+                "notify-only": true,
                 "min-change-delay": 1,
                 "max-change-delay": 3
             }
