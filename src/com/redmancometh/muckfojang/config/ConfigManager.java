@@ -1,5 +1,6 @@
 package com.redmancometh.muckfojang.config;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
@@ -25,7 +26,7 @@ public class ConfigManager
 
     public void initConfig()
     {
-        try (FileReader reader = new FileReader("config\\config.json"))
+        try (FileReader reader = new FileReader("config" + File.separator + "config.json"))
         {
             Configuration conf = gson.fromJson(reader, Configuration.class);
             this.config = conf;
