@@ -1,7 +1,7 @@
 {
     "cloudflare-config": {
-        "auth-key": "382b8c99a921b352707fb91ce6adc4b3a0d7d",
-        "cf-email": "serayne05@gmail.com",
+        "auth-key": "",
+        "cf-email": "",
         "check-interval": 15 // Checking interval in seconds. Advise ~15s to conserver bandwidth.
     },
     "domain-config": {
