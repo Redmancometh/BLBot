@@ -5,14 +5,9 @@
         "check-interval": 15 // Checking interval in seconds. Advise ~15s to conserver bandwidth.
     },
     "domain-config": {
+        //If you use your root domain (i.e mcavenue.net, arkhamnetwork.org, minecraft-central.com or whatever, put "rootdomain" in here)
         "subdomain-list": [
-            "mc",
-            "beta",
-            "eu",
-            "join",
-            "mc",
-            "play",
-            "us",
+            "rootdomain"
             "blocktest"
         ] 
     },
@@ -25,6 +20,7 @@
                 "name": "exampledomain.org",
                 "is-grouped": false,
                 "group": 1,
+                //These are your ddns records and such
                 "target-domains": [
                     "targetdomain.example",
                 ],
