@@ -2,7 +2,11 @@
     "cloudflare-config": {
         "auth-key": "",
         "cf-email": "",
+<<<<<<< HEAD
         "check-interval": 3 // Checking interval in seconds. Advise ~15s to conserver bandwidth.
+=======
+        "check-interval": 15 // Checking interval in seconds. Advise ~15s to conserver bandwidth.
+>>>>>>> origin/master
     },
     "domain-config": {
         "subdomain-list": [
