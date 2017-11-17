@@ -1,38 +1,32 @@
 {
     "cloudflare-config": {
-        "auth-key": "382b8c99a921b352707fb91ce6adc4b3a0d7d",
-        "cf-email": "serayne05@gmail.com",
-        "check-interval": 15 // Checking interval in seconds. Advise ~15s to conserver bandwidth.
+        "auth-key": "",
+        "cf-email": "",
+        "check-interval": 3 // Checking interval in seconds. Advise ~15s to conserver bandwidth.
     },
     "domain-config": {
         "subdomain-list": [
-            "mc",
-            "beta",
-            "eu",
-            "join",
-            "mc",
             "play",
-            "us",
-            "blocktest"
+            "blocktest",
+            "rootdomain"
         ] 
     },
     "individual-zones": {     
            //These are teh domains you want to have rotate
         "zones": [
             {
-                //If this is set to true the domain will automaticaly use the subdomain_list
-                "uniform-domain": true,
-                "name": "arkhamnetwork.org",
-                "is-grouped": false,
+                /**
+                    This is your domain's name
+                **/
+                "name": "mcavenue.net",
+                /**Change all domains at once. Do not set this to false if you don't actually like...look at the code
+                and figure out what this does in detail
+                **/
+                "is-grouped": true,
                 "group": 1,
                 "target-domains": [
-                    "comeatmemojang.club",
-                    "comeatmemojang.online",
-                    "moredotsmoredots.top",
-                    "mojangtookmyjob.club",
-                    "mojangtookmyjob.xyz",
-                    "moredotsmoredots.club ",
-                    "moredotsmoredots.online"
+                    "nd139d4134d141.ddns.net",
+                    "vd12hb2s2b3s.ddns.net"
                 ],
                 "subdomains": [],
                 "notify-only": false,

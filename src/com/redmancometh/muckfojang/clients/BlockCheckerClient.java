@@ -35,22 +35,28 @@ public class BlockCheckerClient
 
     private boolean checkForDomain(String domain)
     {
-        CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-        HttpGet updateRequest = new HttpGet("https://sessionserver.mojang.com/blockedservers");
-        try
+        try (CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build())
         {
-            HttpResponse response = client.execute(updateRequest);
-            String doc = EntityUtils.toString(response.getEntity());
-            List<String> responseList = new CopyOnWriteArrayList(Arrays.asList(doc.split("\n")));
-            String hash = Hashing.sha1().hashString(domain, Charsets.UTF_8).toString();
-            String starHash = Hashing.sha1().hashString("*." + domain, Charsets.UTF_8).toString();
-            boolean blackListed = responseList.contains(hash) || responseList.contains(starHash);
-            EntityUtils.consume(response.getEntity());
-            return blackListed;
+            HttpGet updateRequest = new HttpGet("https://sessionserver.mojang.com/blockedservers");
+            try
+            {
+                HttpResponse response = client.execute(updateRequest);
+                String doc = EntityUtils.toString(response.getEntity());
+                List<String> responseList = new CopyOnWriteArrayList(Arrays.asList(doc.split("\n")));
+                String hash = Hashing.sha1().hashString(domain, Charsets.UTF_8).toString();
+                String starHash = Hashing.sha1().hashString("*." + domain, Charsets.UTF_8).toString();
+                boolean blackListed = responseList.contains(hash) || responseList.contains(starHash);
+                EntityUtils.consume(response.getEntity());
+                return blackListed;
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
         }
-        catch (IOException e)
+        catch (IOException e1)
         {
-            e.printStackTrace();
+            e1.printStackTrace();
         }
         return true;
     }

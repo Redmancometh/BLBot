@@ -19,7 +19,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.util.EntityUtils;
-import org.json.simple.JSONObject;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -27,22 +26,24 @@ import com.google.common.cache.LoadingCache;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.redmancometh.muckfojang.MuckFojang;
 import com.redmancometh.muckfojang.config.CloudflareConfig;
 import com.redmancometh.muckfojang.config.Zone;
+import com.redmancometh.muckfojang.pojo.DomainChangeRequest;
+import com.redmancometh.muckfojang.pojo.SRVContent;
+import com.redmancometh.muckfojang.pojo.ZoneListResponse;
 
+import lombok.Data;
+
+@Data
 public class CloudflareClient
 {
     //https://api.cloudflare.com/client/v4/zones/
     CloseableHttpClient masterClient = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
     private String email;
     private String authKey;
-    private Gson reader = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create();
+    private Gson reader = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).setPrettyPrinting().create();
     private List<String> pendingDomainChanges = new CopyOnWriteArrayList();
     private Map<Integer, String> groupTargets = new ConcurrentHashMap();
 
@@ -57,16 +58,6 @@ public class CloudflareClient
 
     });
 
-    public String getGroupTarget(int arg0)
-    {
-        return groupTargets.get(arg0);
-    }
-
-    public String put(int arg0, String arg1)
-    {
-        return groupTargets.put(arg0, arg1);
-    }
-
     public CloudflareClient(String email, String authKey)
     {
         super();
@@ -74,34 +65,16 @@ public class CloudflareClient
         this.authKey = authKey;
     }
 
-    public void insertSrv(JSONObject srvContent, String domainString, String target)
-    {
-        srvContent.put("service", "_minecraft");
-        srvContent.put("proto", "_tcp");
-        System.out.println("DOMAIN STRING: " + domainString);
-        srvContent.put("name", domainString);
-        srvContent.put("priority", 1);
-        srvContent.put("weight", 1);
-        srvContent.put("port", 25565);
-        srvContent.put("target", target);
-    }
-
     public void initContent(HttpPut updateRequest, String subdomain, String domainString, String target, Zone zone)
     {
-        System.out.println("CONTENT STR: " + subdomain);
         CloudflareConfig cfConfig = MuckFojang.getClient().getConfigManager().getConfig().getCloudflareConfig();
         updateRequest.addHeader("X-Auth-Email", cfConfig.getCfEmail());
         updateRequest.addHeader("X-Auth-Key", cfConfig.getAuthKey());
         updateRequest.addHeader("Content-Type", "application/json");
-        JSONObject json = new JSONObject();
-        JSONObject srvContent = new JSONObject();
-        insertSrv(srvContent, domainString, target);
-        json.put("type", "SRV");
-        json.put("name", domainString);
-        json.put("data", srvContent);
+        DomainChangeRequest domainChange = new DomainChangeRequest(domainString, new SRVContent(domainString, target));
         try
         {
-            updateRequest.setEntity(new StringEntity(json.toJSONString()));
+            updateRequest.setEntity(new StringEntity(reader.toJson(domainChange)));
         }
         catch (UnsupportedEncodingException e)
         {
@@ -149,24 +122,13 @@ public class CloudflareClient
     {
         MuckFojang.getClient().getConfigManager().getConfig().getIndividualZones().getZones().forEach((zone) ->
         {
-            if (!pendingDomainChanges.contains(zone.getName())) checkZone(zone);
+            if (!pendingDomainChanges.contains(zone.getName())) zone.check();
         });
-    }
-
-    /**
-     * Check a zone.
-     * 
-     * @param zone
-     */
-    public void checkZone(Zone zone)
-    {
-        System.out.println("Checking zone: " + zone.getName());
-        zone.check();
     }
 
     public HttpGet getListRequest()
     {
-        HttpGet listRequest = new HttpGet("http://api.cloudflare.com/client/v4/zones?per_page=500");
+        HttpGet listRequest = new HttpGet("https://api.cloudflare.com/client/v4/zones?per_page=500");
         listRequest.addHeader("X-Auth-Email", email);
         listRequest.addHeader("X-Auth-Key", authKey);
         listRequest.addHeader("Content-Type", "application/json");
@@ -177,8 +139,8 @@ public class CloudflareClient
     {
         return CompletableFuture.runAsync(() ->
         {
-            HttpGet updateRequest = getListRequest();
-            try (CloseableHttpResponse response = masterClient.execute(updateRequest))
+            HttpGet listRequest = getListRequest();
+            try (CloseableHttpResponse response = masterClient.execute(listRequest))
             {
                 try (InputStreamReader inputReader = new InputStreamReader(response.getEntity().getContent()))
                 {
@@ -196,14 +158,13 @@ public class CloudflareClient
     {
         try
         {
-            JsonParser parser = new JsonParser();
-            JsonElement obj = parser.parse(EntityUtils.toString(response.getEntity()));
-            JsonArray json = obj.getAsJsonObject().get("result").getAsJsonArray();
-            json.forEach((element) ->
+            String resp = EntityUtils.toString(response.getEntity());
+            ZoneListResponse zoneList = reader.fromJson(resp, ZoneListResponse.class);
+            zoneList.getResult().forEach((jso) ->
             {
-                JsonObject jso = element.getAsJsonObject();
-                Predicate<Zone> zonePredicate = (zone) -> zone.getName().equalsIgnoreCase(jso.get("name").getAsString());
-                MuckFojang.getClient().getConfigManager().getConfig().getIndividualZones().getZones().stream().filter(zonePredicate).forEach((zone) -> zone.setZoneId(jso.get("id").getAsString()));
+                Predicate<Zone> zonePredicate = (zone) -> zone.getName().equalsIgnoreCase(jso.getName());
+                MuckFojang.getClient().getConfigManager().getConfig().getIndividualZones().getZones().stream().filter(zonePredicate).forEach((
+                zone) -> zone.setZoneId(jso.getId()));
             });
             EntityUtils.consume(response.getEntity());
         }
@@ -213,53 +174,4 @@ public class CloudflareClient
         }
     }
 
-    public CloseableHttpClient getClient()
-    {
-        return masterClient;
-    }
-
-    public void setClient(CloseableHttpClient client)
-    {
-        this.masterClient = client;
-    }
-
-    public String getEmail()
-    {
-        return email;
-    }
-
-    public void setEmail(String email)
-    {
-        this.email = email;
-    }
-
-    public String getAuthKey()
-    {
-        return authKey;
-    }
-
-    public void setAuthKey(String authKey)
-    {
-        this.authKey = authKey;
-    }
-
-    public Gson getReader()
-    {
-        return reader;
-    }
-
-    public void setReader(Gson reader)
-    {
-        this.reader = reader;
-    }
-
-    public List<Integer> getPendingGroupChanges()
-    {
-        return pendingGroupChanges;
-    }
-
-    public void setPendingGroupChanges(List<Integer> pendingGroupChanges)
-    {
-        this.pendingGroupChanges = pendingGroupChanges;
-    }
 }
